@@ -1,10 +1,11 @@
 """
-A2A Server — Agente de búsqueda con SerpAPI + Azure OpenAI
-Expone el agente en http://localhost:9999
+A2A Server — Experto en instrumentos musicales con búsqueda web
+http://localhost:9999
 """
 
 import os
 import uvicorn
+import httpx
 from dotenv import load_dotenv
 
 from a2a.server.request_handlers import DefaultRequestHandler
@@ -20,14 +21,12 @@ from starlette.applications import Starlette
 
 load_dotenv()
 
-# ── Herramientas (tools) ────────────────────────────────────────────────────
+# ── Tool: búsqueda especializada en instrumentos musicales ──────────────────
 
-def search_web(query: str) -> str:
-    """Busca en internet usando SerpAPI y devuelve los resultados."""
-    import httpx
-
+def buscar_instrumentos(consulta: str) -> str:
+    """Busca en internet información sobre instrumentos musicales."""
     params = {
-        "q": query,
+        "q": f"instrumento musical {consulta}",
         "api_key": os.environ["SERPAPI_KEY"],
         "num": 5,
     }
@@ -35,29 +34,21 @@ def search_web(query: str) -> str:
     response.raise_for_status()
     data = response.json()
 
-    results = []
+    resultados = []
     for r in data.get("organic_results", [])[:5]:
-        title = r.get("title", "Sin título")
+        titulo = r.get("title", "Sin título")
         snippet = r.get("snippet", "")
         link = r.get("link", "")
-        results.append(f"- **{title}**\n  {snippet}\n  {link}")
+        resultados.append(f"- {titulo}: {snippet} ({link})")
 
-    return "\n\n".join(results) if results else "No se encontraron resultados."
+    return "\n".join(resultados) if resultados else "Sin resultados."
 
 
-# ── AgentCard (tarjeta de presentación del agente) ──────────────────────────
-
-search_skill = AgentSkill(
-    id="web_search",
-    name="Búsqueda Web",
-    description="Busca información en internet usando SerpAPI.",
-    tags=["search", "internet", "serpapi"],
-    examples=["¿Qué es LangGraph?", "Últimas noticias sobre Azure OpenAI"],
-)
+# ── AgentCard ───────────────────────────────────────────────────────────────
 
 agent_card = AgentCard(
-    name="Search Agent",
-    description="Agente especializado en búsqueda web con SerpAPI y Azure OpenAI.",
+    name="Experto en Instrumentos Musicales",
+    description="Chat especializado en instrumentos musicales. Busca info actualizada en internet.",
     version="1.0.0",
     default_input_modes=["text"],
     default_output_modes=["text"],
@@ -65,12 +56,20 @@ agent_card = AgentCard(
     supported_interfaces=[
         AgentInterface(url="http://localhost:9999/", protocol_binding="JSONRPC"),
     ],
-    skills=[search_skill],
+    skills=[
+        AgentSkill(
+            id="instrument_search",
+            name="Búsqueda de Instrumentos",
+            description="Busca información actualizada sobre instrumentos musicales.",
+            tags=["música", "instrumentos", "búsqueda"],
+            examples=["¿Cuánto cuesta una guitarra flamenca?", "Diferencias entre violín y viola"],
+        )
+    ],
 )
 
 # ── Agente ──────────────────────────────────────────────────────────────────
 
-client = AzureOpenAIChatClient(
+llm = AzureOpenAIChatClient(
     endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
     deployment=os.environ["AZURE_OPENAI_DEPLOYMENT"],
     api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -78,19 +77,20 @@ client = AzureOpenAIChatClient(
 )
 
 agent = Agent(
-    client=client,
-    name="Search Agent",
+    client=llm,
+    name="Experto en Instrumentos Musicales",
     instructions=(
-        "Eres un asistente especializado en búsqueda web. "
-        "Cuando el usuario haga una pregunta, usa la herramienta search_web "
-        "para buscar información actualizada y luego responde de forma clara y concisa."
+        "Eres un experto en instrumentos musicales. "
+        "Cuando el usuario pregunte algo, usa buscar_instrumentos para obtener información "
+        "actualizada de internet y luego responde de forma amigable y clara. "
+        "Si la pregunta no es sobre instrumentos musicales, redirige amablemente la conversación."
     ),
-    tools=[search_web],
+    tools=[buscar_instrumentos],
 )
 
 # ── Servidor A2A ────────────────────────────────────────────────────────────
 
-request_handler = DefaultRequestHandler(
+handler = DefaultRequestHandler(
     agent_executor=A2AExecutor(agent),
     task_store=InMemoryTaskStore(),
     agent_card=agent_card,
@@ -99,11 +99,11 @@ request_handler = DefaultRequestHandler(
 app = Starlette(
     routes=[
         *create_agent_card_routes(agent_card),
-        *create_jsonrpc_routes(request_handler, "/"),
+        *create_jsonrpc_routes(handler, "/"),
     ]
 )
 
 if __name__ == "__main__":
-    print("🚀 Servidor A2A arrancando en http://localhost:9999")
-    print("📋 Agent Card disponible en http://localhost:9999/.well-known/agent.json")
+    print("🎸 Servidor A2A - Experto en Instrumentos Musicales")
+    print("📡 http://localhost:9999")
     uvicorn.run(app, host="0.0.0.0", port=9999)
