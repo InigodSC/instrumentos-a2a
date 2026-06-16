@@ -23,7 +23,6 @@ async def chat():
     print("Pregúntame sobre instrumentos musicales.")
     print("Escribe 'salir' para terminar.\n")
 
-    # Sesión compartida → mantiene contexto de conversación
     session = AgentSession(service_session_id="chat-session-1")
 
     async with A2AAgent(name=agent_card.name, agent_card=agent_card, url=SERVER_URL) as agent:
@@ -40,16 +39,31 @@ async def chat():
                 print("👋 ¡Hasta luego!")
                 break
 
-            print("\nAgente: ", end="", flush=True)
+            # Obtener el stream (sin await aquí)
+            stream = agent.run(pregunta, stream=True, session=session)
 
-            async with agent.run(pregunta, stream=True, session=session) as stream:
+            # Animación de espera + recoger respuesta simultáneamente
+            puntos = 0
+            texto_final = ""
+
+            async def recoger():
+                nonlocal texto_final
                 async for update in stream:
                     for content in update.contents:
-                        if content.text:
-                            print(content.text, end="", flush=True)
-                await stream.get_final_response()
+                        if hasattr(content, "text") and content.text:
+                            texto_final += content.text
 
-            print("\n")
+            tarea = asyncio.create_task(recoger())
+
+            while not tarea.done():
+                simbolo = ". " * (puntos % 4 + 1)
+                print(f"\rAgente: {simbolo}  ", end="", flush=True)
+                puntos += 1
+                await asyncio.sleep(0.5)
+
+            await tarea  # asegura que termine bien
+
+            print(f"\rAgente: {texto_final}\n")
 
 
 if __name__ == "__main__":

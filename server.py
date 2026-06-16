@@ -15,7 +15,7 @@ from a2a.types import AgentCapabilities, AgentCard, AgentInterface, AgentSkill
 
 from agent_framework import Agent
 from agent_framework.a2a import A2AExecutor
-from agent_framework.openai import AzureOpenAIChatClient
+from agent_framework.openai import OpenAIChatCompletionClient
 
 from starlette.applications import Starlette
 
@@ -69,9 +69,9 @@ agent_card = AgentCard(
 
 # ── Agente ──────────────────────────────────────────────────────────────────
 
-llm = AzureOpenAIChatClient(
-    endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-    deployment=os.environ["AZURE_OPENAI_DEPLOYMENT"],
+llm = OpenAIChatCompletionClient(
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    model=os.environ["AZURE_OPENAI_DEPLOYMENT"],
     api_key=os.environ["AZURE_OPENAI_API_KEY"],
     api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview"),
 )
@@ -84,8 +84,7 @@ agent = Agent(
         "Cuando el usuario pregunte algo, usa buscar_instrumentos para obtener información "
         "actualizada de internet y luego responde de forma amigable y clara. "
         "Si la pregunta no es sobre instrumentos musicales, redirige amablemente la conversación."
-    ),
-    tools=[buscar_instrumentos],
+    )
 )
 
 # ── Servidor A2A ────────────────────────────────────────────────────────────
