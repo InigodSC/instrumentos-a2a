@@ -1,0 +1,6 @@
+agent-framework[openai] --pre
+agent-framework-a2a --pre
+a2a-sdk
+uvicorn
+httpx
+python-dotenv
