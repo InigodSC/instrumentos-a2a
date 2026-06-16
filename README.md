@@ -1,15 +1,15 @@
-# A2A Search Agent
+# 🎸 A2A Search Agent — Experto en Instrumentos Musicales
 
-Comunicación cliente-servidor con el protocolo A2A.  
-El **servidor** expone un agente de búsqueda web (SerpAPI + Azure OpenAI).  
-El **cliente** lo descubre y le envía preguntas.
+Chat cliente-servidor con el protocolo A2A.  
+El **servidor** expone un agente experto en instrumentos musicales (SerpAPI + Azure OpenAI).  
+El **cliente** es un chat interactivo que mantiene el contexto de la conversación.
 
 ## Estructura
 
 ```
 a2a_search_agent/
 ├── server.py        ← Agente A2A (SerpAPI + Azure OpenAI)
-├── client.py        ← Cliente A2A
+├── client.py        ← Chat interactivo
 ├── .env.example     ← Credenciales (copia a .env y rellena)
 └── requirements.txt
 ```
@@ -17,37 +17,49 @@ a2a_search_agent/
 ## Setup
 
 ```bash
-# 1. Instalar dependencias
 pip install -r requirements.txt
-
-# 2. Configurar credenciales
-cp .env.example .env
-# → Edita .env con tus claves reales
+cp .env.example .env   # rellena con tus claves
 ```
 
 ## Uso
 
-**Terminal 1 — arrancar el servidor:**
+**Terminal 1 — servidor:**
 ```bash
 python server.py
 ```
 
-**Terminal 2 — enviar una pregunta:**
+**Terminal 2 — chat:**
 ```bash
-python client.py "¿Cuáles son las últimas novedades de Azure OpenAI?"
+python client.py
+```
+
+```
+🎸 Experto en Instrumentos Musicales
+────────────────────────────────────
+Tú: ¿Diferencias entre guitarra clásica y flamenca?
+Agente: La flamenca es más ligera, con tapa de abeto...
+
+Tú: ¿Y cuánto cuesta una buena?
+Agente: (recuerda el contexto anterior)...
+
+Tú: salir
+👋 ¡Hasta luego!
 ```
 
 ## Cómo funciona
 
 ```
-Cliente                          Servidor (puerto 9999)
+Cliente                             Servidor :9999
   │                                      │
-  ├─ GET /.well-known/agent.json ────────► AgentCard (nombre, skills...)
-  │◄──────────────────────────────────────┤
+  ├─ GET /.well-known/agent.json ───────►│  Descubre el agente (AgentCard)
+  │◄─────────────────────────────────────┤
   │                                      │
-  ├─ POST / (mensaje usuario) ───────────► AzureOpenAI decide usar search_web()
-  │                                      │ → SerpAPI busca en internet
-  │◄── stream de respuesta ───────────────┤ → LLM sintetiza y responde
+  ├─ "¿Qué es un sitar?" ───────────────►│  Azure OpenAI decide buscar
+  │                                      │  → SerpAPI: "instrumento musical sitar"
+  │◄── respuesta en streaming ───────────┤  → LLM sintetiza y responde
+  │                                      │
+  ├─ "¿Y de dónde viene?" ─────────────►│  Recuerda el contexto anterior
+  │◄── respuesta en streaming ───────────┤
 ```
 
 ## Credenciales necesarias
